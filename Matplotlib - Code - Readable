@@ -1,0 +1,87 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+df_city = pd.read_csv('city_data.csv', index_col=['city'])
+df_ride = pd.read_csv('ride_data.csv', index_col=['city'])
+df_city_ride = df_city.merge(df_ride, on=['city'])
+df_pyber = df_city_ride.sort_values(['city'], ascending=True)
+df_pyber.head()
+
+# Calculate the average fare per city:
+average_fare_per_city = df_pyber.groupby(['city']).mean()['fare']
+average_fare_df = average_fare_per_city.to_frame(name='Average Fare Per City')
+
+# Calculate the total number of rides per city:
+total_num_rides_per_city = df_pyber.groupby(['city']).count()['ride_id']
+ride_num_df = total_num_rides_per_city.to_frame(name='Total Number of Rides Per City')
+
+# Return the total number of drivers per city:
+total_num_drivers_per_city = df_city.sort_values(['city'], ascending=True)
+total_num_drivers = total_num_drivers_per_city.drop(columns=['type'])
+total_num_drivers_df = total_num_drivers.rename(columns={'driver_count':'Total Number of Drivers Per City'})
+
+# Return city type:
+city_type_df = total_num_drivers_per_city.drop(columns=['driver_count'])
+city_type_df = city_type_df.rename(columns={'type':'City Type'})
+
+# Merge all dataframes together:
+bubble_list = [average_fare_df, ride_num_df, total_num_drivers_df, city_type_df]
+bubble_df = pd.concat(bubble_list, join='outer', axis=1)
+bubble_df.head()
+
+# Create a scatter/bubble chart:
+Average_Fare_Per_City = bubble_df['Average Fare Per City']
+Total_Number_of_Ride_Per_City = bubble_df['Total Number of Rides Per City']
+Total_Number_of_Drivers_Per_City = bubble_df['Total Number of Drivers Per City']
+City_Type = bubble_df['City Type']
+City_Color = City_Type.map({'Urban':'gold', 'Suburban':'SkyBlue', 'Rural':'Coral'})
+pyber_scatter = plt.scatter(Total_Number_of_Drivers_Per_City, Average_Fare_Per_City, s=4*Total_Number_of_Ride_Per_City, c=City_Color, edgecolor='black', alpha=0.5)
+plt.xlabel('Total Number of Drivers Per City')
+plt.ylabel('Average Fare Per City')
+plt.title('Pyber Ride Sharing Data (2016)')
+# Create a legend for city type:
+urban_patch = mpatches.Patch(color='gold', label='Urban')
+suburban_patch = mpatches.Patch(color='SkyBlue', label='Suburban')
+rural_patch = mpatches.Patch(color='Coral', label='Rural')
+plt.legend(handles=[urban_patch,suburban_patch,rural_patch])
+plt.text(y=0.5, x=0.5, s='note:rides per city denoted by size of points')
+plt.show()
+
+# Calculate total percentage of fares by city type:
+type_fare_percentage = df_pyber.groupby(['type']).sum()['fare']
+type_fare_df = type_fare_percentage.to_frame(name="Sum")
+type_fare_df['Percentage'] = type_fare_df['Sum']/type_fare_df['Sum'].sum()
+type_fare_df['Percentage1'] = type_fare_df["Percentage"]*100
+# Create pie-chart:
+labels = ['Rural', 'Suburban', 'Urban']
+sizes = type_fare_df['Percentage1']
+explode = (0, 0, 0.1)
+plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, colors=['coral','SkyBlue', 'gold'])
+plt.show()
+
+# Calculate total percentage of rides by city type:
+type_ride_percentage = df_pyber.groupby(['type']).count()['ride_id']
+type_ride_df = type_ride_percentage.to_frame(name="Sum")
+type_ride_df['Percentage'] = type_ride_df['Sum']/type_ride_df['Sum'].sum()
+type_ride_df['Percentage1'] = type_ride_df["Percentage"]*100
+# Create pie-chart:
+labels = ['Rural', 'Suburban', 'Urban']
+sizes = type_ride_df['Percentage1']
+explode = (0, 0, 0.1)
+plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, colors=['coral','SkyBlue', 'gold'])
+plt.show()
+
+# Calculate total percentage of drivers by city type:
+type_drivers_percentage_df = total_num_drivers_df.merge(city_type_df, on=['city'])
+type_drivers_percentage = type_drivers_percentage_df.groupby(['City Type']).sum()['Total Number of Drivers Per City']
+type_drivers_df = type_drivers_percentage.to_frame(name="Sum")
+type_drivers_df['Percentage'] = type_drivers_df['Sum']/type_drivers_df['Sum'].sum()
+type_drivers_df['Percentage1'] = type_drivers_df["Percentage"]*100
+# Create pie-chart:
+labels = ['Rural', 'Suburban', 'Urban']
+sizes = type_drivers_df['Percentage1']
+explode = (0, 0, 0.1)
+plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, colors=['coral','SkyBlue', 'gold'])
+plt.show()
